@@ -438,10 +438,10 @@ const HowItWorks = () => {
                     {/* Campaign summary */}
                     <div className="bg-secondary rounded-xl border border-border p-4 mb-5 grid sm:grid-cols-2 gap-3">
                       {[
-                        { label: "Objetivo", value: getLabel(0, [STEP1_OPTIONS]) },
-                        { label: "Canal", value: getLabel(1, [, STEP2_OPTIONS] as any) },
-                        { label: "Condição", value: getLabel(2, [,, STEP3_OPTIONS] as any) },
-                        { label: "Benefício", value: getLabel(3, [,,, STEP4_OPTIONS] as any) },
+                        { label: "Objetivo", value: STEP1_OPTIONS.find((o) => o.id === selections[0])?.label ?? "—" },
+                        { label: "Canal", value: STEP2_OPTIONS.find((o) => o.id === selections[1])?.label ?? "—" },
+                        { label: "Condição", value: STEP3_OPTIONS.find((o) => o.id === selections[2])?.label ?? "—" },
+                        { label: "Benefício", value: STEP4_OPTIONS.find((o) => o.id === selections[3])?.label ?? "—" },
                         { label: "Receita estimada", value: formatCurrency(receita) },
                         { label: "Impacto promocional", value: formatCurrency(impacto) },
                       ].map((row) => (
