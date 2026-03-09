@@ -186,9 +186,6 @@ const HowItWorks = () => {
   const impacto = Math.round(receita * (sliders.desconto / 100));
   const ticketProjetado = Math.round(sliders.ticket * (1 + (100 - sliders.desconto) / 500));
 
-  // Summary labels
-  const getLabel = (stepIdx: number, lists: Option[][]) =>
-    lists[stepIdx]?.find((o) => o.id === selections[stepIdx])?.label ?? "—";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
