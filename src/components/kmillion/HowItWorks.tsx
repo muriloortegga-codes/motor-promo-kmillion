@@ -280,8 +280,8 @@ const HowItWorks = () => {
                   <TrendingUp className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Bloco 3</p>
-                  <h3 className="font-display text-base font-bold text-foreground leading-tight">
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Etapa 3</p>
+                  <h3 className="font-display text-lg font-bold text-foreground leading-tight">
                     Impacto no comportamento
                   </h3>
                 </div>
