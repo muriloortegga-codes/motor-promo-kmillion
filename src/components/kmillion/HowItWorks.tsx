@@ -1,561 +1,428 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
-  TrendingUp, Store, ShoppingBag, Package, Star, Users,
-  MapPin, Smartphone, Globe, Layers,
-  DollarSign, ShoppingCart, Tag, BarChart2, Calendar, CreditCard,
-  Percent, ArrowUpRight, Wallet, Gift, Truck, Ticket,
-  CheckCircle2, ChevronRight, ChevronLeft, Zap, Mail,
-  Building2, Loader2, Sparkles
+  TrendingUp, Zap, CheckCircle2, Layers, Globe,
+  DollarSign, RefreshCw, BarChart3, ArrowRight,
+  Wallet, Percent, ShoppingBag, Tag,
+  Users, TrendingDown, Calendar, AlertCircle
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Option {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  description?: string;
-}
-
-// ─── Step data ────────────────────────────────────────────────────────────────
-const STEP1_OPTIONS: Option[] = [
-  { id: "ticket", label: "Aumentar ticket médio", icon: TrendingUp },
-  { id: "fluxo", label: "Aumentar fluxo na loja", icon: Store },
-  { id: "estoque", label: "Queimar estoque", icon: Package },
-  { id: "lancamento", label: "Lançar produto", icon: Sparkles },
-  { id: "fidelizar", label: "Fidelizar clientes", icon: Star },
-  { id: "novos", label: "Atrair novos clientes", icon: Users },
-];
-
-const STEP2_OPTIONS: Option[] = [
-  { id: "fisica", label: "Loja física", icon: Store },
-  { id: "ecommerce", label: "E-commerce", icon: ShoppingBag },
-  { id: "app", label: "App", icon: Smartphone },
-  { id: "omnichannel", label: "Omnichannel", icon: Globe, description: "Todos os canais simultaneamente" },
-];
-
-const STEP3_OPTIONS: Option[] = [
-  { id: "valor", label: "Comprar acima de um valor", icon: DollarSign },
-  { id: "qtd", label: "Comprar X produtos", icon: ShoppingCart },
-  { id: "produto", label: "Comprar produto específico", icon: Tag },
-  { id: "combo", label: "Comprar combinação de produtos", icon: Layers },
-  { id: "vip", label: "Ser cliente VIP", icon: Star },
-  { id: "dia", label: "Comprar em dia específico", icon: Calendar },
-  { id: "cartao", label: "Usar cartão específico", icon: CreditCard },
-];
-
-const STEP4_OPTIONS: Option[] = [
-  { id: "desconto", label: "Desconto percentual", icon: Percent },
-  { id: "progressivo", label: "Desconto progressivo", icon: ArrowUpRight },
-  { id: "cashback", label: "Cashback", icon: Wallet },
-  { id: "brinde", label: "Brinde", icon: Gift },
-  { id: "frete", label: "Frete grátis", icon: Truck },
-  { id: "cupom", label: "Cupom para próxima compra", icon: Ticket },
-];
-
-const BENEFIT_PREVIEWS: Record<string, { title: string; description: string }> = {
-  cashback: {
-    title: "Como funciona o Cashback",
-    description: "O cliente recebe de volta uma % do valor pago como crédito para a próxima compra, incentivando a recompra.",
-  },
-  progressivo: {
-    title: "Como funciona o Desconto Progressivo",
-    description: "Quanto mais o cliente compra, maior o desconto: 5% em 3 itens, 10% em 5 itens, 15% em 8 itens.",
-  },
-};
-
-const STEP6_AUTOMATIONS = [
-  { label: "Valida regras em tempo real", icon: CheckCircle2 },
-  { label: "Escolhe a melhor promoção", icon: Zap },
-  { label: "Sugere upsell automático", icon: TrendingUp },
-  { label: "Aplica promoções acumulativas", icon: Layers },
-  { label: "Entrega o benefício instantaneamente", icon: Globe },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const formatCurrency = (v: number) =>
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const STEP_LABELS = ["Objetivo", "Canal", "Condição", "Benefício", "Impacto", "Automação", "Resultado"];
+const fmtNum = (v: number) => v.toLocaleString("pt-BR");
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-const ProgressBar = ({ step, total }: { step: number; total: number }) => (
-  <div className="w-full mb-8">
-    <div className="flex justify-between mb-3">
-      {STEP_LABELS.map((label, i) => (
-        <div key={label} className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-              i < step
-                ? "gradient-primary text-primary-foreground"
-                : i === step
-                ? "border-2 border-primary text-primary bg-accent"
-                : "border-2 border-border text-muted-foreground bg-background"
-            }`}
-          >
-            {i < step ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
-          </div>
-          <span className={`text-[10px] hidden sm:block font-medium ${i === step ? "text-primary" : "text-muted-foreground"}`}>
-            {label}
-          </span>
-        </div>
-      ))}
+const pct = (v: number) => `${v.toFixed(1)}%`;
+
+// ─── Campaign type pills ─────────────────────────────────────────────────────
+const CAMPAIGN_TYPES = [
+  { id: "cashback",     label: "Cashback",              icon: Wallet },
+  { id: "progressivo",  label: "Desconto progressivo",  icon: TrendingUp },
+  { id: "combo",        label: "Combo",                 icon: ShoppingBag },
+  { id: "cupom",        label: "Cupom",                 icon: Tag },
+];
+
+// ─── Automation items ────────────────────────────────────────────────────────
+const AUTOMATIONS = [
+  { label: "Valida regras em tempo real",        icon: CheckCircle2 },
+  { label: "Escolhe a melhor promoção",          icon: Zap },
+  { label: "Sugere upsell automático",           icon: TrendingUp },
+  { label: "Aplica promoções acumulativas",      icon: Layers },
+  { label: "Entrega o benefício instantâneo",    icon: Globe },
+];
+
+// ─── Result card ─────────────────────────────────────────────────────────────
+interface ResultCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: boolean;
+  delay?: number;
+}
+
+const ResultCard = ({ icon: Icon, label, value, sub, highlight, delay = 0 }: ResultCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay }}
+    className={`rounded-2xl p-5 flex flex-col gap-1 border ${
+      highlight
+        ? "gradient-primary border-transparent text-primary-foreground"
+        : "bg-card border-border"
+    }`}
+  >
+    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1 ${
+      highlight ? "bg-white/20" : "bg-accent"
+    }`}>
+      <Icon className={`w-4 h-4 ${highlight ? "text-primary-foreground" : "text-primary"}`} />
     </div>
-    <div className="relative h-1.5 bg-border rounded-full overflow-hidden">
-      <motion.div
-        className="absolute left-0 top-0 h-full gradient-primary rounded-full"
-        initial={{ width: 0 }}
-        animate={{ width: `${(step / (total - 1)) * 100}%` }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-      />
+    <p className={`text-xs font-medium ${highlight ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+      {label}
+    </p>
+    <p className={`text-2xl font-display font-bold leading-tight ${
+      highlight ? "text-primary-foreground" : "text-foreground"
+    }`}>
+      {value}
+    </p>
+    {sub && (
+      <p className={`text-xs ${highlight ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+        {sub}
+      </p>
+    )}
+  </motion.div>
+);
+
+// ─── Slider row ──────────────────────────────────────────────────────────────
+interface SliderRowProps {
+  label: string;
+  value: number;
+  display: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  hint?: string;
+}
+
+const SliderRow = ({ label, value, display, min, max, step, onChange, hint }: SliderRowProps) => (
+  <div>
+    <div className="flex justify-between items-baseline mb-2">
+      <label className="text-sm font-semibold text-foreground">{label}</label>
+      <span className="text-base font-bold text-primary tabular-nums">{display}</span>
     </div>
+    <Slider
+      min={min} max={max} step={step}
+      value={[value]}
+      onValueChange={([v]) => onChange(v)}
+      className="mb-1"
+    />
+    {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
   </div>
 );
 
-const OptionCard = ({
-  option,
-  selected,
-  onClick,
-}: {
-  option: Option;
-  selected: boolean;
-  onClick: () => void;
-}) => (
-  <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={`relative w-full text-left p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
-      selected
-        ? "border-primary bg-accent shadow-md"
-        : "border-border bg-card hover:border-primary/40 hover:bg-accent/40"
-    }`}
-  >
-    <div className="flex items-center gap-3">
-      <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-          selected ? "gradient-primary" : "bg-secondary"
-        }`}
-      >
-        <option.icon className={`w-4 h-4 ${selected ? "text-primary-foreground" : "text-muted-foreground"}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className={`text-sm font-semibold ${selected ? "text-primary" : "text-foreground"}`}>
-          {option.label}
-        </span>
-        {option.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
-        )}
-      </div>
-      {selected && (
-        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-      )}
-    </div>
-  </motion.button>
-);
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main ────────────────────────────────────────────────────────────────────
 const HowItWorks = () => {
-  const [step, setStep] = useState(0);
-  const [selections, setSelections] = useState<Record<number, string>>({});
-  const [sliders, setSliders] = useState({ ticket: 200, clientes: 500, desconto: 10 });
-  const [form, setForm] = useState({ name: "", email: "", empresa: "" });
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // — Bloco 1: contexto
+  const [clientesAtivos, setClientesAtivos]   = useState(2000);
+  const [ticketAtual, setTicketAtual]         = useState(250);
+  const [comprasMes, setComprasMes]           = useState(1.2);
 
-  const totalSteps = 7; // 6 steps + result
+  // — Bloco 2: mecânica
+  const [campanha, setCampanha]               = useState("cashback");
+  const [beneficioPct, setBeneficioPct]       = useState(10);
+  const [taxaRetorno, setTaxaRetorno]         = useState(20);
 
-  const select = (stepIndex: number, id: string) => {
-    setSelections((prev) => ({ ...prev, [stepIndex]: id }));
-  };
+  // — Bloco 3: comportamento
+  const [aumentoTicket, setAumentoTicket]     = useState(15);
+  const [pctRetornam, setPctRetornam]         = useState(30);
+  const [freqApos, setFreqApos]               = useState(1.5);
 
-  const canAdvance = () => {
-    if (step === 4) return true; // sliders always have value
-    if (step === 5) return true; // automação screen, just view
-    if (step === 6) return submitted;
-    return !!selections[step];
-  };
+  // — Calculations ─────────────────────────────────────────────────────────
+  const calc = useMemo(() => {
+    const ticketProjetado       = ticketAtual * (1 + aumentoTicket / 100);
+    const clientesRetornam      = Math.round(clientesAtivos * (pctRetornam / 100));
+    const receitaBase           = clientesAtivos * ticketAtual * comprasMes;
+    const receitaAdicional      = clientesRetornam * ticketProjetado * (freqApos - comprasMes);
+    const receitaImpactada      = clientesRetornam * ticketProjetado * freqApos;
+    const investimento          = receitaImpactada * (beneficioPct / 100);
+    const receitaLiquida        = receitaAdicional - investimento;
+    const roi                   = investimento > 0 ? (receitaLiquida / investimento) * 100 : 0;
+    const projecaoAnual         = receitaLiquida * 12;
+    const crescimentoPct        = receitaBase > 0 ? (receitaAdicional / receitaBase) * 100 : 0;
 
-  const next = () => { if (step < totalSteps - 1 && canAdvance()) setStep((s) => s + 1); };
-  const prev = () => { if (step > 0) setStep((s) => s - 1); };
+    return {
+      ticketProjetado,
+      clientesRetornam,
+      receitaAdicional,
+      investimento,
+      receitaLiquida,
+      roi,
+      projecaoAnual,
+      crescimentoPct,
+    };
+  }, [clientesAtivos, ticketAtual, comprasMes, beneficioPct, taxaRetorno, aumentoTicket, pctRetornam, freqApos]);
 
-  // Impact calc
-  const receita = sliders.ticket * sliders.clientes;
-  const impacto = Math.round(receita * (sliders.desconto / 100));
-  const ticketProjetado = Math.round(sliders.ticket * (1 + (100 - sliders.desconto) / 500));
+  const insightText = useMemo(() => {
+    const campLabels: Record<string, string> = {
+      cashback: "cashback", progressivo: "desconto progressivo", combo: "combo", cupom: "cupom"
+    };
+    const tipo = campLabels[campanha] ?? "campanha";
+    const crescStr = calc.crescimentoPct > 0 ? pct(calc.crescimentoPct) : "expressivo";
+    return `Com uma campanha de ${tipo} e ${beneficioPct}% de benefício, você pode gerar um aumento de ${crescStr} na receita mensal, com ${fmtNum(calc.clientesRetornam)} clientes retornando. Isso significa mais previsibilidade de vendas e menor dependência de campanhas agressivas de desconto.`;
+  }, [campanha, beneficioPct, calc]);
 
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.email) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1500);
-  };
-
-  const pageVariants = {
-    initial: { opacity: 0, x: 30 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -30 },
-  };
+  const fadeIn = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true } };
 
   return (
-    <section className="km-section bg-background">
+    <section id="como-funciona" className="km-section bg-background">
       <div className="km-container">
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
+
+        {/* ── Section header ── */}
+        <motion.div {...fadeIn} transition={{ duration: 0.5 }} className="text-center mb-14">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-primary bg-accent px-3 py-1.5 rounded-full mb-4">
-            <Zap className="w-3 h-3" /> Simulador Interativo
+            <BarChart3 className="w-3 h-3" /> Calculadora de Impacto
           </span>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Como <span className="text-gradient">funciona</span> na prática
+            Quanto dinheiro uma campanha{" "}
+            <span className="text-gradient">gera para você?</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Monte uma campanha real em 6 passos e veja como o Motor Promocional Kmillion a executa em tempo real.
+          <p className="text-muted-foreground max-w-2xl mx-auto text-base">
+            Preencha os dados do seu negócio e veja o impacto financeiro em tempo real.
+            Sem cadastro, sem bloqueio.
           </p>
         </motion.div>
 
-        {/* Simulator card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-3xl mx-auto"
-        >
-          <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
-            {/* Header strip */}
-            <div className="gradient-primary px-6 py-4 flex items-center justify-between">
-              <span className="text-primary-foreground font-display font-bold text-sm">
-                Simulador de Campanha Kmillion
-              </span>
-              <span className="text-primary-foreground/70 text-xs">
-                Passo {Math.min(step + 1, 6)} de 6
-              </span>
-            </div>
+        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 items-start max-w-6xl mx-auto">
 
-            <div className="p-6 md:p-8">
-              <ProgressBar step={step} total={totalSteps} />
+          {/* ══ LEFT: INPUTS ════════════════════════════════════════════════ */}
+          <div className="space-y-6">
 
-              <AnimatePresence mode="wait">
-                {/* ── STEP 0: Objetivo ── */}
-                {step === 0 && (
-                  <motion.div key="step0" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">Qual o objetivo da sua campanha?</h3>
-                    <p className="text-sm text-muted-foreground mb-5">Escolha um objetivo principal.</p>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {STEP1_OPTIONS.map((o) => (
-                        <OptionCard key={o.id} option={o} selected={selections[0] === o.id} onClick={() => select(0, o.id)} />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
+            {/* Bloco 1 — Contexto */}
+            <motion.div {...fadeIn} transition={{ duration: 0.5, delay: 0.1 }}
+              className="bg-card border border-border rounded-2xl p-6 space-y-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Bloco 1</p>
+                  <h3 className="font-display text-base font-bold text-foreground leading-tight">
+                    Contexto do negócio
+                  </h3>
+                </div>
+              </div>
 
-                {/* ── STEP 1: Canal ── */}
-                {step === 1 && (
-                  <motion.div key="step1" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">Onde sua promoção será aplicada?</h3>
-                    <p className="text-sm text-muted-foreground mb-5">Selecione o canal de atuação.</p>
-                    <div className="grid sm:grid-cols-2 gap-3 mb-5">
-                      {STEP2_OPTIONS.map((o) => (
-                        <OptionCard key={o.id} option={o} selected={selections[1] === o.id} onClick={() => select(1, o.id)} />
-                      ))}
-                    </div>
-                    <div className="rounded-xl bg-accent border border-primary/20 p-4 text-sm text-accent-foreground flex gap-3 items-start">
-                      <Globe className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>O Motor Promocional Kmillion conecta todos os canais e aplica a mesma regra em tempo real.</span>
-                    </div>
-                  </motion.div>
-                )}
+              <SliderRow
+                label="Clientes ativos"
+                value={clientesAtivos}
+                display={fmtNum(clientesAtivos)}
+                min={100} max={50000} step={100}
+                onChange={setClientesAtivos}
+              />
+              <SliderRow
+                label="Ticket médio atual"
+                value={ticketAtual}
+                display={fmt(ticketAtual)}
+                min={30} max={3000} step={10}
+                onChange={setTicketAtual}
+              />
+              <SliderRow
+                label="Compras por mês (média)"
+                value={comprasMes}
+                display={`${comprasMes.toFixed(1)}x / mês`}
+                min={0.5} max={6} step={0.1}
+                onChange={setComprasMes}
+              />
+            </motion.div>
 
-                {/* ── STEP 2: Condição ── */}
-                {step === 2 && (
-                  <motion.div key="step2" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">Qual condição ativa o benefício?</h3>
-                    <p className="text-sm text-muted-foreground mb-5">Selecione a regra de ativação.</p>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {STEP3_OPTIONS.map((o) => (
-                        <OptionCard key={o.id} option={o} selected={selections[2] === o.id} onClick={() => select(2, o.id)} />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
+            {/* Bloco 2 — Mecânica */}
+            <motion.div {...fadeIn} transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-card border border-border rounded-2xl p-6 space-y-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+                  <Tag className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Bloco 2</p>
+                  <h3 className="font-display text-base font-bold text-foreground leading-tight">
+                    Mecânica da campanha
+                  </h3>
+                </div>
+              </div>
 
-                {/* ── STEP 3: Benefício ── */}
-                {step === 3 && (
-                  <motion.div key="step3" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">Qual benefício o cliente recebe?</h3>
-                    <p className="text-sm text-muted-foreground mb-5">Selecione o tipo de benefício.</p>
-                    <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                      {STEP4_OPTIONS.map((o) => (
-                        <OptionCard key={o.id} option={o} selected={selections[3] === o.id} onClick={() => select(3, o.id)} />
-                      ))}
-                    </div>
-                    {selections[3] && BENEFIT_PREVIEWS[selections[3]] && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-xl bg-accent border border-primary/20 p-4"
-                      >
-                        <p className="text-sm font-semibold text-primary mb-1">
-                          {BENEFIT_PREVIEWS[selections[3]].title}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {BENEFIT_PREVIEWS[selections[3]].description}
-                        </p>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
+              {/* Campaign type pills */}
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-3">Tipo de campanha</p>
+                <div className="flex flex-wrap gap-2">
+                  {CAMPAIGN_TYPES.map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setCampanha(id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                        campanha === id
+                          ? "gradient-primary text-primary-foreground border-transparent shadow-sm"
+                          : "bg-background border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                {/* ── STEP 4: Impacto ── */}
-                {step === 4 && (
-                  <motion.div key="step4" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">Simule o impacto da campanha</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Ajuste os parâmetros e veja a projeção em tempo real.</p>
+              <SliderRow
+                label="Percentual de benefício"
+                value={beneficioPct}
+                display={`${beneficioPct}%`}
+                min={1} max={40} step={1}
+                onChange={setBeneficioPct}
+              />
+              <SliderRow
+                label="Taxa estimada de recompra"
+                value={taxaRetorno}
+                display={`${taxaRetorno}%`}
+                min={2} max={60} step={1}
+                onChange={setTaxaRetorno}
+                hint="Com comunicação e ativação, campanhas podem gerar aumento de recorrência."
+              />
+            </motion.div>
 
-                    <div className="space-y-6 mb-6">
-                      {/* Ticket médio */}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-sm font-semibold text-foreground">Valor médio da compra</label>
-                          <span className="text-sm font-bold text-primary">{formatCurrency(sliders.ticket)}</span>
-                        </div>
-                        <Slider
-                          min={50} max={2000} step={50}
-                          value={[sliders.ticket]}
-                          onValueChange={([v]) => setSliders((s) => ({ ...s, ticket: v }))}
-                        />
-                      </div>
+            {/* Bloco 3 — Comportamento */}
+            <motion.div {...fadeIn} transition={{ duration: 0.5, delay: 0.3 }}
+              className="bg-card border border-border rounded-2xl p-6 space-y-5">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Bloco 3</p>
+                  <h3 className="font-display text-base font-bold text-foreground leading-tight">
+                    Impacto no comportamento
+                  </h3>
+                </div>
+              </div>
 
-                      {/* Clientes */}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-sm font-semibold text-foreground">Clientes impactados</label>
-                          <span className="text-sm font-bold text-primary">{sliders.clientes.toLocaleString("pt-BR")}</span>
-                        </div>
-                        <Slider
-                          min={50} max={10000} step={50}
-                          value={[sliders.clientes]}
-                          onValueChange={([v]) => setSliders((s) => ({ ...s, clientes: v }))}
-                        />
-                      </div>
+              <SliderRow
+                label="Aumento esperado no ticket médio"
+                value={aumentoTicket}
+                display={`+${aumentoTicket}%`}
+                min={0} max={60} step={1}
+                onChange={setAumentoTicket}
+              />
+              <SliderRow
+                label="Percentual de clientes que retornam"
+                value={pctRetornam}
+                display={`${pctRetornam}%`}
+                min={2} max={80} step={1}
+                onChange={setPctRetornam}
+              />
+              <SliderRow
+                label="Frequência de compra após campanha"
+                value={freqApos}
+                display={`${freqApos.toFixed(1)}x / mês`}
+                min={0.5} max={8} step={0.1}
+                onChange={setFreqApos}
+              />
+            </motion.div>
+          </div>
 
-                      {/* Desconto */}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-sm font-semibold text-foreground">Percentual de desconto / cashback</label>
-                          <span className="text-sm font-bold text-primary">{sliders.desconto}%</span>
-                        </div>
-                        <Slider
-                          min={1} max={50} step={1}
-                          value={[sliders.desconto]}
-                          onValueChange={([v]) => setSliders((s) => ({ ...s, desconto: v }))}
-                        />
-                      </div>
-                    </div>
+          {/* ══ RIGHT: RESULTS ════════════════════════════════════════════ */}
+          <div className="space-y-6 lg:sticky lg:top-24">
 
-                    {/* Impact cards */}
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: "Receita estimada", value: formatCurrency(receita), icon: BarChart2, positive: true },
-                        { label: "Impacto promocional", value: formatCurrency(impacto), icon: Percent, positive: false },
-                        { label: "Ticket médio projetado", value: formatCurrency(ticketProjetado), icon: TrendingUp, positive: true },
-                      ].map((card) => (
-                        <motion.div
-                          key={card.label}
-                          layout
-                          className="bg-secondary rounded-xl p-3 text-center border border-border"
-                        >
-                          <card.icon className={`w-4 h-4 mx-auto mb-1 ${card.positive ? "text-primary" : "text-destructive"}`} />
-                          <p className="text-xs text-muted-foreground mb-1 leading-tight">{card.label}</p>
-                          <p className={`text-sm font-bold ${card.positive ? "text-foreground" : "text-destructive"}`}>{card.value}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ── STEP 5: Automação ── */}
-                {step === 5 && (
-                  <motion.div key="step5" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">O Motor aplica automaticamente:</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Enquanto o marketing cria, o motor executa sem depender de TI.</p>
-
-                    <div className="space-y-3 mb-6">
-                      {STEP6_AUTOMATIONS.map((item, i) => (
-                        <motion.div
-                          key={item.label}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.12, duration: 0.3 }}
-                          className="flex items-center gap-4 p-4 rounded-xl bg-secondary border border-border"
-                        >
-                          <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-                            <item.icon className="w-4 h-4 text-primary-foreground" />
-                          </div>
-                          <span className="text-sm font-medium text-foreground">{item.label}</span>
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: i * 0.12 + 0.3 }}
-                            className="ml-auto"
-                          >
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
-                          </motion.div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="rounded-xl gradient-primary p-4 text-center">
-                      <Zap className="w-6 h-6 text-primary-foreground mx-auto mb-2" />
-                      <p className="text-primary-foreground font-semibold text-sm">
-                        Campanha ativa em todos os PDVs e canais em tempo real
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ── STEP 6: Resultado + Lead ── */}
-                {step === 6 && (
-                  <motion.div key="step6" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.25 }}>
-                    <h3 className="font-display text-xl font-bold text-foreground mb-1">
-                      Seu planejamento promocional está pronto
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-5">Resumo da campanha simulada.</p>
-
-                    {/* Campaign summary */}
-                    <div className="bg-secondary rounded-xl border border-border p-4 mb-5 grid sm:grid-cols-2 gap-3">
-                      {[
-                        { label: "Objetivo", value: STEP1_OPTIONS.find((o) => o.id === selections[0])?.label ?? "—" },
-                        { label: "Canal", value: STEP2_OPTIONS.find((o) => o.id === selections[1])?.label ?? "—" },
-                        { label: "Condição", value: STEP3_OPTIONS.find((o) => o.id === selections[2])?.label ?? "—" },
-                        { label: "Benefício", value: STEP4_OPTIONS.find((o) => o.id === selections[3])?.label ?? "—" },
-                        { label: "Receita estimada", value: formatCurrency(receita) },
-                        { label: "Impacto promocional", value: formatCurrency(impacto) },
-                      ].map((row) => (
-                        <div key={row.label} className="flex flex-col gap-0.5">
-                          <span className="text-xs text-muted-foreground">{row.label}</span>
-                          <span className="text-sm font-semibold text-foreground">{row.value}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {!submitted ? (
-                      <>
-                        <div className="rounded-xl border-2 border-dashed border-primary/30 bg-accent/50 p-5 mb-1">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Mail className="w-4 h-4 text-primary" />
-                            <p className="text-sm font-semibold text-foreground">Receba este planejamento completo no seu e-mail</p>
-                          </div>
-                          <form onSubmit={handleSubmit} className="space-y-3">
-                            <input
-                              type="text"
-                              placeholder="Seu nome"
-                              value={form.name}
-                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                              required
-                              className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
-                            <input
-                              type="email"
-                              placeholder="Seu e-mail profissional"
-                              value={form.email}
-                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                              required
-                              className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
-                            <div className="relative">
-                              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <input
-                                type="text"
-                                placeholder="Empresa"
-                                value={form.empresa}
-                                onChange={(e) => setForm((f) => ({ ...f, empresa: e.target.value }))}
-                                className="w-full h-10 rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                              />
-                            </div>
-                            <Button
-                              type="submit"
-                              disabled={loading || !form.name || !form.email}
-                              className="w-full gradient-primary text-primary-foreground font-semibold h-11 rounded-lg"
-                            >
-                              {loading ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                              ) : (
-                                <Mail className="w-4 h-4 mr-2" />
-                              )}
-                              {loading ? "Enviando..." : "Receber planejamento da campanha"}
-                            </Button>
-                          </form>
-                        </div>
-                      </>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-xl gradient-primary p-6 text-center"
-                      >
-                        <CheckCircle2 className="w-10 h-10 text-primary-foreground mx-auto mb-3" />
-                        <p className="text-primary-foreground font-display font-bold text-lg mb-1">
-                          Planejamento enviado!
-                        </p>
-                        <p className="text-primary-foreground/80 text-sm">
-                          Verifique sua caixa de entrada. Em breve nossa equipe entrará em contato.
-                        </p>
-                      </motion.div>
-                    )}
-
-                    <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed">
-                      Com o Motor Promocional Kmillion você pode criar campanhas como essa em minutos e ativá-las em toda sua rede em tempo real.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
-                <Button
-                  variant="ghost"
-                  onClick={prev}
-                  disabled={step === 0}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Voltar
-                </Button>
-
-                {step < 6 && (
-                  <Button
-                    onClick={next}
-                    disabled={!canAdvance()}
-                    className="gradient-primary text-primary-foreground font-semibold px-6 h-10 rounded-lg flex items-center gap-2 disabled:opacity-40"
-                  >
-                    {step === 5 ? "Ver resultado" : "Próximo passo"}
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                )}
-                {step === 6 && submitted && (
-                  <Button
-                    onClick={() => { setStep(0); setSelections({}); setSubmitted(false); setForm({ name: "", email: "", empresa: "" }); }}
-                    variant="outline"
-                    className="border-primary text-primary hover:bg-accent"
-                  >
-                    Simular novamente
-                  </Button>
-                )}
+            {/* Result cards grid */}
+            <div>
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Zap className="w-3 h-3" /> Resultado em tempo real
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <ResultCard
+                  icon={DollarSign}
+                  label="Receita adicional / mês"
+                  value={fmt(calc.receitaAdicional)}
+                  sub={calc.crescimentoPct > 0 ? `+${pct(calc.crescimentoPct)} vs. atual` : undefined}
+                  highlight
+                  delay={0}
+                />
+                <ResultCard
+                  icon={TrendingUp}
+                  label="Novo ticket médio"
+                  value={fmt(calc.ticketProjetado)}
+                  sub={`era ${fmt(ticketAtual)}`}
+                  delay={0.05}
+                />
+                <ResultCard
+                  icon={RefreshCw}
+                  label="Clientes que retornam"
+                  value={fmtNum(calc.clientesRetornam)}
+                  sub={`de ${fmtNum(clientesAtivos)} ativos`}
+                  delay={0.1}
+                />
+                <ResultCard
+                  icon={Percent}
+                  label="Investimento promocional"
+                  value={fmt(calc.investimento)}
+                  sub="benefício concedido / mês"
+                  delay={0.15}
+                />
+                <ResultCard
+                  icon={BarChart3}
+                  label="Retorno líquido (ROI)"
+                  value={calc.roi > 0 ? `${calc.roi.toFixed(0)}%` : "—"}
+                  sub="receita gerada ÷ investimento"
+                  delay={0.2}
+                />
+                <ResultCard
+                  icon={Calendar}
+                  label="Projeção anual"
+                  value={fmt(calc.projecaoAnual)}
+                  sub="resultado acumulado em 12 meses"
+                  delay={0.25}
+                />
               </div>
             </div>
+
+            {/* Insight block */}
+            <motion.div
+              key={insightText}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="bg-card border border-border rounded-2xl p-5"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                <p className="text-sm font-bold text-foreground">O que isso significa na prática</p>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{insightText}</p>
+            </motion.div>
+
+            {/* Motor automation block */}
+            <motion.div {...fadeIn} transition={{ duration: 0.5, delay: 0.35 }}
+              className="bg-card border border-border rounded-2xl p-5">
+              <p className="text-sm font-bold text-foreground mb-4">
+                E tudo isso acontece automaticamente
+              </p>
+              <div className="space-y-2.5">
+                {AUTOMATIONS.map(({ label, icon: Icon }, i) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, x: -12 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.05 * i, duration: 0.3 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <span className="text-sm text-foreground">{label}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* CTA leve */}
+            <motion.div {...fadeIn} transition={{ duration: 0.5, delay: 0.4 }}
+              className="rounded-2xl border border-primary/30 bg-accent p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-bold text-foreground mb-0.5">Pronto para ativar na sua rede?</p>
+                <p className="text-xs text-muted-foreground">Leve esse modelo para a prática com o Motor Kmillion.</p>
+              </div>
+              <Button
+                className="gradient-primary text-primary-foreground hover:opacity-90 rounded-xl whitespace-nowrap border-0 shrink-0"
+                onClick={() => document.getElementById("encerramento")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Quero aplicar isso <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </motion.div>
+
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

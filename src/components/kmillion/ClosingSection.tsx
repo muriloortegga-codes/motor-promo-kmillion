@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 const ClosingSection = () => {
   return (
-    <section className="km-section gradient-section-alt">
+    <section id="encerramento" className="km-section gradient-section-alt">
       <div className="km-container">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
