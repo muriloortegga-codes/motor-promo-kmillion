@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -46,15 +46,17 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
 
     /* Custom Kmillion tokens */
-    --km-orange: 14 99% 60%;
-    --km-orange-dark: 14 90% 45%;
-    --km-orange-light: 14 100% 95%;
+    --km-primary: 12 100% 55%;
+    --km-secondary: 31 100% 50%;
+    --km-alternative: 342 100% 45%;
+    --km-deep: 273 80% 22%;
+    --km-orange: 12 100% 55%; /* Legacy mapping */
     --km-warm-bg: 30 100% 99%;
     --km-warm-surface: 30 40% 97%;
     --km-text-dark: 20 10% 15%;
     --km-text-muted: 20 8% 45%;
     --km-green: 152 60% 45%;
-    --km-red: 0 70% 55%;
+    --km-red: 342 100% 45%;
 
     --gradient-primary: linear-gradient(135deg, hsl(14 99% 60%), hsl(24 100% 55%));
     --gradient-hero: linear-gradient(160deg, hsl(30 100% 99%) 0%, hsl(14 100% 97%) 50%, hsl(30 100% 99%) 100%);
@@ -100,11 +102,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Sora', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Sora', sans-serif;
   }
 }
 

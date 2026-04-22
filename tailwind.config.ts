@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Space Grotesk", "sans-serif"],
+        sans: ["Sora", "sans-serif"],
+        display: ["Sora", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -62,9 +62,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         km: {
+          primary: "hsl(var(--km-primary))",
+          secondary: "hsl(var(--km-secondary))",
+          alternative: "hsl(var(--km-alternative))",
+          deep: "hsl(var(--km-deep))",
           orange: "hsl(var(--km-orange))",
-          "orange-dark": "hsl(var(--km-orange-dark))",
-          "orange-light": "hsl(var(--km-orange-light))",
           green: "hsl(var(--km-green))",
           red: "hsl(var(--km-red))",
         },
