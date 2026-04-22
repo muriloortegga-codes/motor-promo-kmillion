@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import LogoKmillion from "./LogoKmillion";
 
 const Header = () => {
   return (
@@ -9,8 +10,8 @@ const Header = () => {
       className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border"
     >
       <div className="km-container flex items-center justify-between h-16">
-        <div className="font-display font-bold text-xl">
-          <span className="text-gradient">K</span>million
+        <div className="w-32 sm:w-40 text-km-primary flex items-center">
+          <LogoKmillion className="w-full h-auto" />
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#problema" className="hover:text-foreground transition-colors">Problema</a>

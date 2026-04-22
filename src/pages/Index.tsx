@@ -8,6 +8,7 @@ import PracticalCases from "@/components/kmillion/PracticalCases";
 import EcosystemSection from "@/components/kmillion/EcosystemSection";
 import ForWhoSection from "@/components/kmillion/ForWhoSection";
 import ClosingSection from "@/components/kmillion/ClosingSection";
+import Footer from "@/components/kmillion/Footer";
 
 const Index = () => {
   return (
@@ -32,6 +33,7 @@ const Index = () => {
         <ForWhoSection />
         <ClosingSection />
       </main>
+      <Footer />
     </div>
   );
 };

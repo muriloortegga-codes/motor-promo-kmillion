@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import heroIllustration from "@/assets/hero-illustration.png";
+import LogoSilhueta from "./LogoSilhueta";
 
 const HeroSection = () => {
   return (
     <section className="gradient-hero km-section relative overflow-hidden">
-      <div className="km-container">
+      {/* Background Silhouette */}
+      <div className="absolute top-1/2 -translate-y-1/2 -right-40 lg:-right-20 opacity-[0.03] text-km-primary w-[800px] h-[800px] pointer-events-none">
+        <LogoSilhueta className="w-full h-full" />
+      </div>
+
+      <div className="km-container relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
